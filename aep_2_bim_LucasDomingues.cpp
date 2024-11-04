@@ -101,7 +101,6 @@ void decrypt(char *text) {
 }
 
 void saveUsers(User users[], int count) {
-    setlocale(LC_ALL, "pt_BR.UTF-8");
     FILE *file = fopen(FILENAME, "w");
     if (file == NULL) {
         printf("Erro ao abrir arquivo!\n");
@@ -175,9 +174,8 @@ void clearInputBuffer() {
 }
 
 void addUser(User users[], int *count) {
-    setlocale(LC_ALL, "pt_BR.UTF-8");
     if (*count >= MAX_USERS) {
-        printf("Limite de usuÃ¡rios atingido!\n");
+        printf("Limite de usuários atingido!\n");
         return;
     }
 
@@ -195,7 +193,7 @@ void addUser(User users[], int *count) {
         fgets(newUser.email, MAX_EMAIL, stdin);
         newUser.email[strcspn(newUser.email, "\n")] = 0;
         if (!isValidEmail(newUser.email)) {
-            printf("Email invÃ¡lido! Por favor, insira um email vÃ¡lido.\n");
+            printf("Email inválido! Por favor, insira um email válido.\n");
         }
     } while (!isValidEmail(newUser.email));
 
@@ -207,11 +205,11 @@ void addUser(User users[], int *count) {
     (*count)++;
     
     saveUsers(users, *count);
-    printf("UsuÃ¡rio adicionado com sucesso!\n");
+    printf("Usuário adicionado com sucesso!\n");
 }
 
 void listUsers(User users[], int count) {
-    printf("\n=== Lista de UsuÃ¡rios ===\n");
+    printf("\n=== Lista de Usuários ===\n");
     for (int i = 0; i < count; i++) {
         if (users[i].active) {
             printf("ID: %d\n", users[i].id);
@@ -223,9 +221,8 @@ void listUsers(User users[], int count) {
 }
 
 void updateUser(User users[], int count) {
-    setlocale(LC_ALL, "pt_BR.UTF-8");
     int id;
-    printf("\nDigite o ID do usuÃ¡rio para atualizar: ");
+    printf("\nDigite o ID do usuário para atualizar: ");
     scanf("%d", &id);
     clearInputBuffer();
 
@@ -240,7 +237,7 @@ void updateUser(User users[], int count) {
                 fgets(users[i].email, MAX_EMAIL, stdin);
                 users[i].email[strcspn(users[i].email, "\n")] = 0;
                 if (!isValidEmail(users[i].email)) {
-                    printf("Email invÃ¡lido! Por favor, insira um email vÃ¡lido.\n");
+                    printf("Email inválido! Por favor, insira um email válido.\n");
                 }
             } while (!isValidEmail(users[i].email));
             
@@ -254,17 +251,16 @@ void updateUser(User users[], int count) {
             }
             
             saveUsers(users, count);
-            printf("UsuÃ¡rio atualizado com sucesso!\n");
+            printf("Usuário atualizado com sucesso!\n");
             return;
         }
     }
-    printf("UsuÃ¡rio nÃ£o encontrado!\n");
+    printf("Usuário não encontrado\n");
 }
 
 void deleteUser(User users[], int count) {
-    setlocale(LC_ALL, "pt_BR.UTF-8");
     int id;
-    printf("Digite o ID do usuÃ¡rio para excluir: ");
+    printf("Digite o ID do usuário para excluir: ");
     scanf("%d", &id);
     clearInputBuffer();
 
@@ -272,11 +268,11 @@ void deleteUser(User users[], int count) {
         if (users[i].id == id && users[i].active) {
             users[i].active = 0;
             saveUsers(users, count);
-            printf("UsuÃ¡rio excluÃ­do com sucesso!\n");
+            printf("Usuário excluído com sucesso!\n");
             return;
         }
     }
-    printf("UsuÃ¡rio nÃ£o encontrado!\n");
+    printf("Usuário não encontrado!\n");
 }
 
 int main() {
@@ -288,13 +284,13 @@ int main() {
     int option;
 
     do {
-        printf("\n=== Sistema de Gerenciamento de UsuÃ¡rios ===\n");
-        printf("1. Adicionar UsuÃ¡rio\n");
-        printf("2. Listar UsuÃ¡rios\n");
-        printf("3. Atualizar UsuÃ¡rio\n");
-        printf("4. Excluir UsuÃ¡rio\n");
+        printf("\n=== Sistema de Gerenciamento de Usuários ===\n");
+        printf("1. Adicionar Usuário\n");
+        printf("2. Listar Usuários\n");
+        printf("3. Atualizar Usuário\n");
+        printf("4. Excluir Usuário\n");
         printf("0. Sair\n");
-        printf("\nEscolha uma opÃ§Ã£o: ");
+        printf("\nEscolha uma opção: ");
         scanf("%d", &option);
 
         switch(option) {
@@ -314,7 +310,7 @@ int main() {
                 printf("Saindo...\n");
                 break;
             default:
-                printf("OpÃ§Ã£o invÃ¡lida!\n");
+                printf("Opção inválida!\n");
         }
     } while(option != 0);
 
