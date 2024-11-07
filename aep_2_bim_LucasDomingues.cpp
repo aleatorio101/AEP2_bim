@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 #include <locale.h>
 #include <time.h>
 
@@ -10,8 +9,7 @@
 #define MAX_EMAIL 100 
 #define MAX_PASSWORD 100 
 #define FILENAME "users.txt"
-#define ENCRYPTION_KEY "S3cr3tK3y2024"
-#define SALT_LENGTH 8
+#define ENCRYPTION_KEY "SimpleKey"
 
 typedef struct {
     int id;
@@ -21,82 +19,29 @@ typedef struct {
     int active;
 } User;
 
-
-void generateSalt(char *salt) {
-    const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    for (int i = 0; i < SALT_LENGTH; i++) {
-        int index = rand() % (sizeof(charset) - 1);
-        salt[i] = charset[index];
-    }
-    salt[SALT_LENGTH] = '\0';
-}
-
-
-void reverseString(char *str) {
-    int length = strlen(str);
-    for (int i = 0; i < length / 2; i++) {
-        char temp = str[i];
-        str[i] = str[length - 1 - i];
-        str[length - 1 - i] = temp;
-    }
-}
-
-
-void encrypt(char *text) {
-    char salt[SALT_LENGTH + 1];
-    generateSalt(salt);
-    
-    int textLen = strlen(text);
-    int keyLen = strlen(ENCRYPTION_KEY);
-    int saltLen = strlen(salt);
-    
-
-    for (int i = 0; text[i] != '\0'; i++) {
-        text[i] = text[i] ^ ENCRYPTION_KEY[i % keyLen];
-    }
-    
-
-    for (int i = 0; text[i] != '\0'; i++) {
-        int shift = (salt[i % saltLen] + i) % 26;
-        text[i] = ((text[i] + shift) % 128);
-    }
-    
-    
-    reverseString(text);
-    
-    
-    char temp[256];
-    strcpy(temp, text);
-    strcpy(text, salt);
-    strcat(text, temp);
-}
-
-
-void decrypt(char *text) {
-    if (strlen(text) <= SALT_LENGTH) {
-        return;
-    }
-
-    char salt[SALT_LENGTH + 1];
-    
-    strncpy(salt, text, SALT_LENGTH);
-    salt[SALT_LENGTH] = '\0';
-    
-    memmove(text, text + SALT_LENGTH, strlen(text) - SALT_LENGTH + 1);
-    
-
-    reverseString(text);
-    
-    
-    for (int i = 0; text[i] != '\0'; i++) {
-        int shift = (salt[i % SALT_LENGTH] + i) % 26;
-        text[i] = ((text[i] - shift + 128) % 128);
-    }
-    
-    
+void encryptDecrypt(char *text) {
     int keyLen = strlen(ENCRYPTION_KEY);
     for (int i = 0; text[i] != '\0'; i++) {
-        text[i] = text[i] ^ ENCRYPTION_KEY[i % keyLen];
+        text[i] ^= ENCRYPTION_KEY[i % keyLen];
+    }
+}
+
+void listUsers(User users[], int count) {
+    printf("\n=== Lista de Usuários ===\n");
+    int found = 0;
+    
+    for (int i = 0; i < count; i++) {
+        if (users[i].active) {
+            printf("ID: %d\n", users[i].id);
+            printf("Nome: %s\n", users[i].name);
+            printf("Email: %s\n", users[i].email);
+            printf("------------------------\n");
+            found = 1;
+        }
+    }
+    
+    if (!found) {
+        printf("Nenhum usuário cadastrado.\n");
     }
 }
 
@@ -109,26 +54,28 @@ void saveUsers(User users[], int count) {
 
     for (int i = 0; i < count; i++) {
         if (users[i].active) {
-            char name[MAX_NAME];
-            char email[MAX_EMAIL];
-            char password[MAX_PASSWORD];
+            char encName[MAX_NAME];
+            char encEmail[MAX_EMAIL];
+            char encPassword[MAX_PASSWORD];
             
-            strcpy(name, users[i].name);
-            strcpy(email, users[i].email);
-            strcpy(password, users[i].password);
+            strncpy(encName, users[i].name, MAX_NAME - 1);
+            strncpy(encEmail, users[i].email, MAX_EMAIL - 1);
+            strncpy(encPassword, users[i].password, MAX_PASSWORD - 1);
             
-            encrypt(name);
-            encrypt(email);
-            encrypt(password);
+            encryptDecrypt(encName);
+            encryptDecrypt(encEmail);
+            encryptDecrypt(encPassword);
             
-            fprintf(file, "%d|%s|%s|%s|1\n", users[i].id, name, email, password);
+            fprintf(file, "%d|%s|%s|%s|%d\n", 
+                    users[i].id,
+                    encName, encEmail, encPassword,
+                    users[i].active);
         }
     }
     fclose(file);
 }
 
 int loadUsers(User users[]) {
-    setlocale(LC_ALL, "pt_BR.UTF-8");
     FILE *file = fopen(FILENAME, "r");
     int count = 0;
     
@@ -136,36 +83,36 @@ int loadUsers(User users[]) {
         return 0;
     }
 
-    char line[MAX_NAME + MAX_EMAIL + MAX_PASSWORD + 20];
+    char line[1024];
     while (fgets(line, sizeof(line), file) && count < MAX_USERS) {
-        char name[MAX_NAME];
-        char email[MAX_EMAIL];
-        char password[MAX_PASSWORD];
+        line[strcspn(line, "\n")] = 0;
         
-        sscanf(line, "%d|%[^|]|%[^|]|%[^|]|%d", 
-               &users[count].id, 
-               name, 
-               email, 
-               password,
-               &users[count].active);
+        int id, active;
+        char encName[MAX_NAME], encEmail[MAX_EMAIL], encPassword[MAX_PASSWORD];
         
-        decrypt(name);
-        decrypt(email);
-        decrypt(password);
-        
-        strcpy(users[count].name, name);
-        strcpy(users[count].email, email);
-        strcpy(users[count].password, password);
-        
-        count++;
+        if (sscanf(line, "%d|%[^|]|%[^|]|%[^|]|%d",
+                   &id, encName, encEmail, encPassword, &active) == 5) {
+                   
+            users[count].id = id;
+            users[count].active = active;
+
+            encryptDecrypt(encName);
+            encryptDecrypt(encEmail);
+            encryptDecrypt(encPassword);
+            
+            strncpy(users[count].name, encName, MAX_NAME - 1);
+            strncpy(users[count].email, encEmail, MAX_EMAIL - 1);
+            strncpy(users[count].password, encPassword, MAX_PASSWORD - 1);
+            
+            users[count].name[MAX_NAME - 1] = '\0';
+            users[count].email[MAX_EMAIL - 1] = '\0';
+            users[count].password[MAX_PASSWORD - 1] = '\0';
+            
+            count++;
+        }
     }
-    
     fclose(file);
     return count;
-}
-
-int isValidEmail(const char *email) {
-    return strchr(email, '@') != NULL;
 }
 
 void clearInputBuffer() {
@@ -188,14 +135,9 @@ void addUser(User users[], int *count) {
     fgets(newUser.name, MAX_NAME, stdin);
     newUser.name[strcspn(newUser.name, "\n")] = 0;
     
-    do {
-        printf("\nEmail: ");
-        fgets(newUser.email, MAX_EMAIL, stdin);
-        newUser.email[strcspn(newUser.email, "\n")] = 0;
-        if (!isValidEmail(newUser.email)) {
-            printf("Email inválido! Por favor, insira um email válido.\n");
-        }
-    } while (!isValidEmail(newUser.email));
+    printf("\nEmail: ");
+    fgets(newUser.email, MAX_EMAIL, stdin);
+    newUser.email[strcspn(newUser.email, "\n")] = 0;
 
     printf("\nSenha: ");
     fgets(newUser.password, MAX_PASSWORD, stdin);
@@ -208,61 +150,38 @@ void addUser(User users[], int *count) {
     printf("Usuário adicionado com sucesso!\n");
 }
 
-void listUsers(User users[], int count) {
-    printf("\n=== Lista de Usuários ===\n");
-    for (int i = 0; i < count; i++) {
-        if (users[i].active) {
-            printf("ID: %d\n", users[i].id);
-            printf("Nome: %s\n", users[i].name);
-            printf("Email: %s\n", users[i].email);
-            printf("------------------------\n");
-        }
-    }
-}
-
 void updateUser(User users[], int count) {
     int id;
-    printf("\nDigite o ID do usuário para atualizar: ");
+    printf("\nDigite o ID do usuário que deseja alterar: ");
     scanf("%d", &id);
-    clearInputBuffer();
 
     for (int i = 0; i < count; i++) {
         if (users[i].id == id && users[i].active) {
-            printf("\nNovo nome (%s): ", users[i].name);
+            printf("Digite o novo nome (atual: %s): ", users[i].name);
+            clearInputBuffer();
             fgets(users[i].name, MAX_NAME, stdin);
             users[i].name[strcspn(users[i].name, "\n")] = 0;
-            
-            do {
-                printf("\nNovo email (%s): ", users[i].email);
-                fgets(users[i].email, MAX_EMAIL, stdin);
-                users[i].email[strcspn(users[i].email, "\n")] = 0;
-                if (!isValidEmail(users[i].email)) {
-                    printf("Email inválido! Por favor, insira um email válido.\n");
-                }
-            } while (!isValidEmail(users[i].email));
-            
-            printf("\nNova senha (pressione Enter para manter a atual): ");
-            char newPassword[MAX_PASSWORD];
-            fgets(newPassword, MAX_PASSWORD, stdin);
-            newPassword[strcspn(newPassword, "\n")] = 0;
 
-            if (strlen(newPassword) > 0) {
-                strcpy(users[i].password, newPassword);
-            }
-            
+            printf("Digite o novo email (atual: %s): ", users[i].email);
+            fgets(users[i].email, MAX_EMAIL, stdin);
+            users[i].email[strcspn(users[i].email, "\n")] = 0;
+
+            printf("Digite a nova senha: ");
+            fgets(users[i].password, MAX_PASSWORD, stdin);
+            users[i].password[strcspn(users[i].password, "\n")] = 0;
+
             saveUsers(users, count);
             printf("Usuário atualizado com sucesso!\n");
             return;
         }
     }
-    printf("Usuário não encontrado\n");
+    printf("Usuário com ID %d não encontrado ou inativo.\n", id);
 }
 
 void deleteUser(User users[], int count) {
     int id;
-    printf("Digite o ID do usuário para excluir: ");
+    printf("\nDigite o ID do usuário que deseja excluir: ");
     scanf("%d", &id);
-    clearInputBuffer();
 
     for (int i = 0; i < count; i++) {
         if (users[i].id == id && users[i].active) {
@@ -272,33 +191,32 @@ void deleteUser(User users[], int count) {
             return;
         }
     }
-    printf("Usuário não encontrado!\n");
+    printf("Usuário com ID %d não encontrado ou já inativo.\n", id);
 }
 
 int main() {
     setlocale(LC_ALL, "");
-    srand(time(NULL));
-    
+
     User users[MAX_USERS];
     int userCount = loadUsers(users);
-    int option;
 
+    int option;
     do {
-        printf("\n=== Sistema de Gerenciamento de Usuários ===\n");
-        printf("1. Adicionar Usuário\n");
-        printf("2. Listar Usuários\n");
-        printf("3. Atualizar Usuário\n");
+        printf("\nMenu:\n");
+        printf("1. Listar Usuários\n");
+        printf("2. Adicionar Usuário\n");
+        printf("3. Alterar Usuário\n");
         printf("4. Excluir Usuário\n");
         printf("0. Sair\n");
-        printf("\nEscolha uma opção: ");
+        printf("Escolha uma opção: ");
         scanf("%d", &option);
 
-        switch(option) {
+        switch (option) {
             case 1:
-                addUser(users, &userCount);
+                listUsers(users, userCount);
                 break;
             case 2:
-                listUsers(users, userCount);
+                addUser(users, &userCount);
                 break;
             case 3:
                 updateUser(users, userCount);
@@ -310,9 +228,10 @@ int main() {
                 printf("Saindo...\n");
                 break;
             default:
-                printf("Opção inválida!\n");
+                printf("Opção inválida! Tente novamente.\n");
         }
-    } while(option != 0);
+    } while (option != 0);
 
     return 0;
 }
+
