@@ -1,46 +1,95 @@
 # AEP2_bim
-# Sistema de Gerenciamento de Usuários
 
-Este sistema permite gerenciar usuários com criptografia básica de dados sensíveis. Ele armazena e carrega informações dos usuários em um arquivo de texto, utilizando uma cifra de substituição para proteger os dados. 
+## Sistema de Gerenciamento de Usuários e Senhas
+
+Este sistema permite gerenciar usuários e suas senhas com criptografia de dados sensíveis. Ele armazena e carrega informações dos usuários e senhas em arquivos de texto separados, utilizando um algoritmo de criptografia para proteger os dados.
 
 ## Funcionalidades
 
-- **Adicionar Usuário**: Adiciona um novo usuário ao sistema, solicitando nome e e-mail. O e-mail é validado para garantir que possui "@" e algum texto após este símbolo.
-- **Listar Usuários**: Exibe uma lista de todos os usuários ativos com seu ID, nome e e-mail.
-- **Atualizar Usuário**: Atualiza o nome e/ou e-mail de um usuário existente.
-- **Excluir Usuário**: Marca um usuário como inativo, o que o remove da lista de usuários ativos.
+### Gerenciamento de Usuários
+* **Adicionar Usuário:** Adiciona um novo usuário ao sistema, solicitando nome, e-mail e senha
+* **Listar Usuários:** Exibe uma lista de todos os usuários ativos com seu ID, nome e e-mail
+* **Atualizar Usuário:** Atualiza o nome, e-mail e/ou senha de um usuário existente
+* **Excluir Usuário:** Marca um usuário como inativo, o que o remove da lista de usuários ativos
+
+### Gerenciamento de Senhas
+* **Login:** Sistema de autenticação para acessar o gerenciador de senhas
+* **Listar Senhas:** Exibe todas as senhas cadastradas do usuário logado
+* **Adicionar Senha:** Permite cadastrar uma nova senha para uma plataforma
 
 ## Estrutura dos Dados
 
-- **ID**: Número único que identifica cada usuário.
-- **Nome**: Nome completo do usuário.
-- **E-mail**: E-mail do usuário, que é validado para incluir "@" e algum texto após o símbolo.
-- **Ativo**: Indica se o usuário está ativo (1) ou inativo (0).
+### Usuários (`users.txt`)
+* **ID:** Número único que identifica cada usuário
+* **Nome:** Nome completo do usuário
+* **E-mail:** E-mail do usuário
+* **Senha:** Senha de acesso ao sistema
+* **Ativo:** Indica se o usuário está ativo (1) ou inativo (0)
 
-## Criptografia
+### Senhas (`passwords.txt`)
+* **UserID:** ID do usuário dono da senha
+* **Plataforma:** Nome da plataforma/serviço
+* **Senha:** Senha armazenada
 
-O sistema utiliza uma criptografia simples de substituição, somando 3 a cada caractere para encriptar dados de nome e e-mail ao salvá-los. Ao carregar os dados, o sistema subtrai 3 de cada caractere para descriptografá-los.
+## Segurança
 
-## Estrutura do Arquivo `users.txt`
-
-Cada linha no arquivo segue o formato:
-
-- **ID**: Identificador do usuário.
-- **Nome (criptografado)**: Nome do usuário após ser criptografado.
-- **Email (criptografado)**: E-mail do usuário após ser criptografado.
-- **Ativo**: Status do usuário (1 para ativo, 0 para inativo).
+### Criptografia
+O sistema utiliza um algoritmo de criptografia simétrica para proteger dados sensíveis:
+* Todas as senhas são criptografadas antes de serem salvas
+* Dados pessoais (nome, email) são criptografados
+* Uma chave de criptografia única é utilizada (`ENCRYPTION_KEY`)
+* Implementação separada para encriptação e decriptação
 
 ## Funções Principais
 
-- `addUser`: Adiciona um novo usuário com validação de e-mail.
-- `listUsers`: Exibe todos os usuários ativos.
-- `updateUser`: Atualiza informações de um usuário existente.
-- `deleteUser`: Marca um usuário como inativo.
-- `saveUsers`: Salva todos os usuários ativos em `users.txt`.
-- `loadUsers`: Carrega os usuários ativos de `users.txt`.
-- `encrypt` e `decrypt`: Funções de criptografia e descriptografia para nome e e-mail.
+### Gerenciamento de Usuários
+* `addUser`: Adiciona um novo usuário
+* `listUsers`: Exibe todos os usuários ativos
+* `updateUser`: Atualiza informações de um usuário existente
+* `deleteUser`: Marca um usuário como inativo
+* `saveUsers`: Salva todos os usuários em `users.txt`
+* `loadUsers`: Carrega os usuários de `users.txt`
+
+### Gerenciamento de Senhas
+* `loginUser`: Autentica o usuário no sistema
+* `passwordManager`: Interface do gerenciador de senhas
+* `addNewPassword`: Adiciona nova senha
+* `listUserPasswords`: Lista senhas do usuário
+* `savePasswordEntry`: Salva nova senha no arquivo
+
+### Criptografia
+* `encrypt`: Encripta dados antes de salvar
+* `decrypt`: Decripta dados após carregar
+
+## Limites do Sistema
+* Máximo de 500 usuários
+* Máximo de 1000 senhas por usuário
+* Tamanho máximo para campos de texto: 500 caracteres
+
+## Arquivos do Sistema
+* `users.txt`: Armazena dados dos usuários
+* `passwords.txt`: Armazena senhas dos usuários
 
 ## Requisitos
+* Compilador C (GCC recomendado)
+* Sistema operacional com suporte a locale PT-BR
+* Mínimo de 1MB de espaço em disco
+* Permissões de leitura/escrita na pasta do programa
 
-- **Compilador C** (como `gcc`)
-- **Locale PT-BR UTF-8** para exibir mensagens corretamente
+## Como Compilar e Executar
+```bash
+gcc -o gerenciador_senhas main.c
+./gerenciador_senhas
+```
+
+## Considerações de Segurança
+* Senhas são sempre criptografadas antes de serem salvas
+* Dados sensíveis nunca são armazenados em texto puro
+* Sistema de login protege acesso às senhas
+* Cada usuário só tem acesso às suas próprias senhas
+
+## Limitações
+* A criptografia implementada é básica e serve para fins educacionais
+* Não há proteção contra força bruta
+* Arquivos de dados não são compactados
+* Não há backup automático dos dados
