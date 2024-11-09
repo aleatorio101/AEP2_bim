@@ -4,11 +4,14 @@
 #include <locale.h>
 #include <time.h>
 
-#define MAX_USERS 100
-#define MAX_NAME 100  
-#define MAX_EMAIL 100 
-#define MAX_PASSWORD 100 
+#define MAX_USERS 500
+#define MAX_NAME 500  
+#define MAX_EMAIL 500 
+#define MAX_PASSWORD 500 
+#define MAX_PLATFORM 500
+#define MAX_PASSWORDS 1000
 #define FILENAME "users.txt"
+#define PASSWORD_FILE "passwords.txt"
 #define ENCRYPTION_KEY "SimpleKey"
 
 typedef struct {
@@ -19,6 +22,12 @@ typedef struct {
     int active;
 } User;
 
+typedef struct {
+    int userId;
+    char platform[MAX_PLATFORM];
+    char password[MAX_PASSWORD];
+} PasswordEntry;
+
 void encryptDecrypt(char *text) {
     int keyLen = strlen(ENCRYPTION_KEY);
     for (int i = 0; text[i] != '\0'; i++) {
@@ -27,7 +36,7 @@ void encryptDecrypt(char *text) {
 }
 
 void listUsers(User users[], int count) {
-    printf("\n=== Lista de Usu·rios ===\n");
+    printf("\n=== Lista de Usu√°rios ===\n");
     int found = 0;
     
     for (int i = 0; i < count; i++) {
@@ -41,7 +50,7 @@ void listUsers(User users[], int count) {
     }
     
     if (!found) {
-        printf("Nenhum usu·rio cadastrado.\n");
+        printf("Nenhum usu√°rio cadastrado.\n");
     }
 }
 
@@ -122,7 +131,7 @@ void clearInputBuffer() {
 
 void addUser(User users[], int *count) {
     if (*count >= MAX_USERS) {
-        printf("Limite de usu·rios atingido!\n");
+        printf("Limite de usu√°rios atingido!\n");
         return;
     }
 
@@ -135,11 +144,11 @@ void addUser(User users[], int *count) {
     fgets(newUser.name, MAX_NAME, stdin);
     newUser.name[strcspn(newUser.name, "\n")] = 0;
     
-    printf("\nEmail: ");
+    printf("Email: ");
     fgets(newUser.email, MAX_EMAIL, stdin);
     newUser.email[strcspn(newUser.email, "\n")] = 0;
 
-    printf("\nSenha: ");
+    printf("Senha: ");
     fgets(newUser.password, MAX_PASSWORD, stdin);
     newUser.password[strcspn(newUser.password, "\n")] = 0;
 
@@ -147,12 +156,12 @@ void addUser(User users[], int *count) {
     (*count)++;
     
     saveUsers(users, *count);
-    printf("Usu·rio adicionado com sucesso!\n");
+    printf("Usu√°rio adicionado com sucesso!\n");
 }
 
 void updateUser(User users[], int count) {
     int id;
-    printf("\nDigite o ID do usu·rio que deseja alterar: ");
+    printf("\nDigite o ID do usu√°rio que deseja alterar: ");
     scanf("%d", &id);
 
     for (int i = 0; i < count; i++) {
@@ -171,27 +180,153 @@ void updateUser(User users[], int count) {
             users[i].password[strcspn(users[i].password, "\n")] = 0;
 
             saveUsers(users, count);
-            printf("Usu·rio atualizado com sucesso!\n");
+            printf("Usu√°rio atualizado com sucesso!\n");
             return;
         }
     }
-    printf("Usu·rio com ID %d n„o encontrado ou inativo.\n", id);
+    printf("Usu√°rio com ID %d n√£o encontrado ou inativo.\n", id);
 }
 
 void deleteUser(User users[], int count) {
     int id;
-    printf("\nDigite o ID do usu·rio que deseja excluir: ");
+    printf("\nDigite o ID do usu√°rio que deseja excluir: ");
     scanf("%d", &id);
 
     for (int i = 0; i < count; i++) {
         if (users[i].id == id && users[i].active) {
             users[i].active = 0;
             saveUsers(users, count);
-            printf("Usu·rio excluÌdo com sucesso!\n");
+            printf("Usu√°rio exclu√≠do com sucesso!\n");
             return;
         }
     }
-    printf("Usu·rio com ID %d n„o encontrado ou j· inativo.\n", id);
+    printf("Usu√°rio com ID %d n√£o encontrado ou j√° inativo.\n", id);
+}
+
+void savePasswordEntry(PasswordEntry entry) {
+    FILE *file = fopen(PASSWORD_FILE, "a");
+    if (file == NULL) {
+        printf("Erro ao abrir arquivo de senhas!\n");
+        return;
+    }
+
+    char encPlatform[MAX_PLATFORM];
+    char encPassword[MAX_PASSWORD];
+    
+    strncpy(encPlatform, entry.platform, MAX_PLATFORM - 1);
+    strncpy(encPassword, entry.password, MAX_PASSWORD - 1);
+    
+    encryptDecrypt(encPlatform);
+    encryptDecrypt(encPassword);
+    
+    fprintf(file, "%d|%s|%s\n", entry.userId, encPlatform, encPassword);
+    fclose(file);
+}
+
+void listUserPasswords(int userId) {
+    FILE *file = fopen(PASSWORD_FILE, "r");
+    if (file == NULL) {
+        printf("Nenhuma senha cadastrada.\n");
+        return;
+    }
+
+    printf("\n=== Suas Senhas Cadastradas ===\n");
+    char line[1024];
+    int found = 0;
+    
+    while (fgets(line, sizeof(line), file)) {
+        line[strcspn(line, "\n")] = 0;
+        
+        int currentUserId;
+        char encPlatform[MAX_PLATFORM], encPassword[MAX_PASSWORD];
+        
+        if (sscanf(line, "%d|%[^|]|%[^|]", &currentUserId, encPlatform, encPassword) == 3) {
+            if (currentUserId == userId) {
+                encryptDecrypt(encPlatform);
+                encryptDecrypt(encPassword);
+                printf("Plataforma: %s\n", encPlatform);
+                printf("Senha: %s\n", encPassword);
+                printf("------------------------\n");
+                found = 1;
+            }
+        }
+    }
+    
+    if (!found) {
+        printf("Voc√™ ainda n√£o possui senhas cadastradas.\n");
+    }
+    
+    fclose(file);
+}
+
+void addNewPassword(int userId) {
+    PasswordEntry newEntry;
+    newEntry.userId = userId;
+    
+    printf("\nPlataforma: ");
+    clearInputBuffer();
+    fgets(newEntry.platform, MAX_PLATFORM, stdin);
+    newEntry.platform[strcspn(newEntry.platform, "\n")] = 0;
+    
+    printf("Senha: ");
+    fgets(newEntry.password, MAX_PASSWORD, stdin);
+    newEntry.password[strcspn(newEntry.password, "\n")] = 0;
+    
+    savePasswordEntry(newEntry);
+    printf("Senha cadastrada com sucesso!\n");
+}
+
+void passwordManager(int userId) {
+    int option;
+    do {
+        printf("\nGerenciador de Senhas:\n");
+        printf("1. Listar minhas senhas\n");
+        printf("2. Adicionar nova senha\n");
+        printf("0. Voltar ao menu principal\n");
+        printf("Escolha uma op√ß√£o: ");
+        scanf("%d", &option);
+
+        switch (option) {
+            case 1:
+                listUserPasswords(userId);
+                break;
+            case 2:
+                addNewPassword(userId);
+                break;
+            case 0:
+                printf("Voltando ao menu principal...\n");
+                break;
+            default:
+                printf("Op√ß√£o inv√°lida! Tente novamente.\n");
+        }
+    } while (option != 0);
+}
+
+void loginUser(User users[], int count) {
+    char email[MAX_EMAIL];
+    char password[MAX_PASSWORD];
+    
+    printf("\nLogin no Sistema\n");
+    printf("Email: ");
+    clearInputBuffer();
+    fgets(email, MAX_EMAIL, stdin);
+    email[strcspn(email, "\n")] = 0;
+    
+    printf("Senha: ");
+    fgets(password, MAX_PASSWORD, stdin);
+    password[strcspn(password, "\n")] = 0;
+    
+    for (int i = 0; i < count; i++) {
+        if (users[i].active && 
+            strcmp(users[i].email, email) == 0 && 
+            strcmp(users[i].password, password) == 0) {
+            printf("Login realizado com sucesso!\n");
+            printf("Bem-vindo(a), %s!\n", users[i].name);
+            passwordManager(users[i].id);
+            return;
+        }
+    }
+    printf("Email ou senha incorretos!\n");
 }
 
 int main() {
@@ -203,12 +338,13 @@ int main() {
     int option;
     do {
         printf("\nMenu:\n");
-        printf("1. Listar Usu·rios\n");
-        printf("2. Adicionar Usu·rio\n");
-        printf("3. Alterar Usu·rio\n");
-        printf("4. Excluir Usu·rio\n");
+        printf("1. Listar Usu√°rios\n");
+        printf("2. Adicionar Usu√°rio\n");
+        printf("3. Alterar Usu√°rio\n");
+        printf("4. Excluir Usu√°rio\n");
+        printf("5. Login no sistema de senhas\n");
         printf("0. Sair\n");
-        printf("Escolha uma opÁ„o: ");
+        printf("Escolha uma op√ß√£o: ");
         scanf("%d", &option);
 
         switch (option) {
@@ -224,14 +360,16 @@ int main() {
             case 4:
                 deleteUser(users, userCount);
                 break;
+            case 5:
+                loginUser(users, userCount);
+                break;
             case 0:
                 printf("Saindo...\n");
                 break;
             default:
-                printf("OpÁ„o inv·lida! Tente novamente.\n");
+                printf("Op√ß√£o inv√°lida! Tente novamente.\n");
         }
     } while (option != 0);
 
     return 0;
 }
-
