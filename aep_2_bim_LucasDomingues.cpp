@@ -12,7 +12,7 @@
 #define MAX_PASSWORDS 1000
 #define FILENAME "users.txt"
 #define PASSWORD_FILE "passwords.txt"
-#define ENCRYPTION_KEY "SimpleKey"
+#define ENCRYPTION_KEY "SimpleKey123"
 
 typedef struct {
     int id;
@@ -28,10 +28,23 @@ typedef struct {
     char password[MAX_PASSWORD];
 } PasswordEntry;
 
-void encryptDecrypt(char *text) {
+void encrypt(char *text) {
+    if (text == NULL) return;
     int keyLen = strlen(ENCRYPTION_KEY);
-    for (int i = 0; text[i] != '\0'; i++) {
-        text[i] ^= ENCRYPTION_KEY[i % keyLen];
+    int textLen = strlen(text);
+    
+    for (int i = 0; i < textLen; i++) {
+        text[i] = text[i] + ENCRYPTION_KEY[i % keyLen];
+    }
+}
+
+void decrypt(char *text) {
+    if (text == NULL) return;
+    int keyLen = strlen(ENCRYPTION_KEY);
+    int textLen = strlen(text);
+    
+    for (int i = 0; i < textLen; i++) {
+        text[i] = text[i] - ENCRYPTION_KEY[i % keyLen];
     }
 }
 
@@ -71,9 +84,13 @@ void saveUsers(User users[], int count) {
             strncpy(encEmail, users[i].email, MAX_EMAIL - 1);
             strncpy(encPassword, users[i].password, MAX_PASSWORD - 1);
             
-            encryptDecrypt(encName);
-            encryptDecrypt(encEmail);
-            encryptDecrypt(encPassword);
+            encName[MAX_NAME - 1] = '\0';
+            encEmail[MAX_EMAIL - 1] = '\0';
+            encPassword[MAX_PASSWORD - 1] = '\0';
+            
+            encrypt(encName);
+            encrypt(encEmail);
+            encrypt(encPassword);
             
             fprintf(file, "%d|%s|%s|%s|%d\n", 
                     users[i].id,
@@ -104,10 +121,10 @@ int loadUsers(User users[]) {
                    
             users[count].id = id;
             users[count].active = active;
-
-            encryptDecrypt(encName);
-            encryptDecrypt(encEmail);
-            encryptDecrypt(encPassword);
+            
+            decrypt(encName);
+            decrypt(encEmail);
+            decrypt(encPassword);
             
             strncpy(users[count].name, encName, MAX_NAME - 1);
             strncpy(users[count].email, encEmail, MAX_EMAIL - 1);
@@ -216,8 +233,11 @@ void savePasswordEntry(PasswordEntry entry) {
     strncpy(encPlatform, entry.platform, MAX_PLATFORM - 1);
     strncpy(encPassword, entry.password, MAX_PASSWORD - 1);
     
-    encryptDecrypt(encPlatform);
-    encryptDecrypt(encPassword);
+    encPlatform[MAX_PLATFORM - 1] = '\0';
+    encPassword[MAX_PASSWORD - 1] = '\0';
+    
+    encrypt(encPlatform);
+    encrypt(encPassword);
     
     fprintf(file, "%d|%s|%s\n", entry.userId, encPlatform, encPassword);
     fclose(file);
@@ -242,8 +262,8 @@ void listUserPasswords(int userId) {
         
         if (sscanf(line, "%d|%[^|]|%[^|]", &currentUserId, encPlatform, encPassword) == 3) {
             if (currentUserId == userId) {
-                encryptDecrypt(encPlatform);
-                encryptDecrypt(encPassword);
+                decrypt(encPlatform);
+                decrypt(encPassword);
                 printf("Plataforma: %s\n", encPlatform);
                 printf("Senha: %s\n", encPassword);
                 printf("------------------------\n");
